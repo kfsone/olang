@@ -1,0 +1,17 @@
+- How about we think "encapsulation" rather than "derivation"?
+Tagged Types:
+
+instead of lots of 'int' types, 'int' should be a class of type, with a default implementation.
+
+	let; x int = 1
+
+x is a default-implementation int. What if I want an 8 bit int? let 'int' define variants
+
+	let; x int:s8 = 1
+	let; y int:u32 = 4294967295
+
+String encodings?
+
+	let; input str:ascii = "hello, world"
+	let; output str:utf8 = input  // translation occurs
+

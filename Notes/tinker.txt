@@ -1,0 +1,170 @@
+package; Lex
+
+alias; char_t = uint8_t
+
+enum;
+ParserState {
+    Uninitialized
+    Parsing
+    EOF
+}
+
+enum; TokenType {
+    Invalid = "Invalid/Unrecognized token"
+    Space   = "Whitespace (space/tab)"
+    EOL     = "End-of-line"
+    Word    = "Alphabetic sequence"
+    Number  = "Numeric sequence"
+}
+
+proc; show_token_type(t val TokenType) {
+    print("token {0:d} is {0:s}\n", t.String())
+}
+
+interface;
+Lengthed {
+    fn; .Len(); size_t
+}
+
+interface; Stringable {
+    fn; .ToString(); string
+}
+
+interface; Reader {
+    proc; .Read(bytes size_t, into []byte); size_t, []byte
+}
+
+interface; ReaderCloser {
+    (Reader)
+    fn; .Close()
+}
+
+interface; ReaderTryCloser {
+    (Reader)
+    proc; .TryClose()
+}
+
+struct; Token {
+    TokenType
+
+    start   uint32; .Start()
+    end     uint32
+    .End(); end
+
+    .Len() = .End() - .Start()
+
+    .(Lengthed)
+
+    .(Stringable) {
+        .ToString(); string {
+            format("Token(.TokenType:{:s},.start:{},.end:{})\n", .TokenType.String(), .start, .end)
+        }
+    }
+}
+
+proc;
+NewToken(type TokenType; start, end uint32); Token {
+    error if; end < start {
+        InvalidParamError("token end must be >= start; got {}, {}", start, end)
+    }
+    return; Token{ TokenType: type; start: start; end: end }
+}
+
+proc;
+create_new_token(type TokenType; start, end uint32); Token {
+    error unless let; token = NewToken(type, start, end)
+
+    print("created new token\n")
+
+    return; token
+}
+
+proc;
+create_new_token(type TokenType; start, end uint32); token Token {
+    error unless let; token = NewToken(type, start, end)
+
+    print("created new token\n")
+
+    return
+}
+
+proc;
+create_new_token(type TokenType; start, end uint32); Token {
+    return; NewToken(type, start, end)
+}
+
+fn;
+create_new_token(type TokenType; start, end uint32); Token {
+    return; NewToken(type, start, end)  // compile error: unhandled error case
+}
+
+struct; Parser {
+    Filename string
+    Code     []char_t
+    offset   size_t
+}
+
+proc of Parser;
+Locate(offset size_t); line, column size_t {
+    
+    error if; offset >= Parser.Code.Len() {
+        InvalidParamError("offset is beyond end of code")
+    }
+
+    let; line, column = 1, 1
+
+    for range i; until=offset {
+        if .Code[i] == ('\r', '\n') {
+            let; line += 1; column = 0
+        }
+        let; column += 1
+    }
+
+    return
+}
+
+switch;
+classify(c char_t); TokenType {
+    case ' ', '\t':
+        TokenType.Whitespace
+
+    case '\r', '\n':
+        TokenType.EOL
+
+    case 'a'..'z', 'A'..'Z':
+        TokenType.Word
+
+    case '0'..'9':
+        TokenType.Number
+
+    case:
+        TokenType.Invalid
+}
+
+fn of Parser;
+Next(); token Token, success bool {
+    let; start = .offset, .offset += 1
+
+    return if; start >= .code.Len
+
+    if type TokenType = classify(.Code[start]); type == TokenType.Invalid {
+        return
+    }
+
+    while; .offset < .code.Len() && classify(.Code[.offset]) == type {
+        let; .offset += 1
+    }
+
+    error unless let; token = NewToken(type, start, .offset)
+
+    return; token, true
+}
+
+fn; swap(x mref <Integral>, y mref <Integral>) {
+    let; x, y = y, x
+}
+
+fn; not_swap(x mref <Integral>, y mref <Integral>) {
+    let; x = y; y = x
+}
+

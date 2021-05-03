@@ -1,0 +1,111 @@
+/*
+file
+    :   package_name directives
+;
+
+!space : ' ';
+!spaces : space
+       | spaces space
+       | '/' '*' [.]* '*' '/'  // '.' does not match newline
+       ;
+
+// '\r', '\r\n' etc are replaced with '\n'.
+newline : '\n'
+        | '/' '/' [.]* '\n'    // '.' does not match newline
+        | '/' '*' ([.]* '\n')+ '*' '/'
+        ;
+
+newlines : newline
+         | newlines newline
+         | EOF
+         ;
+
+separator
+    :   ":" newlines
+    |   ":"
+    |   ";"
+    ;
+
+
+string_literal
+    :   "\"" ("\\." | !"\"")* "\""
+    |   "'"  ("\\." | !"'" )* "'"
+    |   "`"  (![`\n])*        "`"
+    ;
+
+package_name
+    :   "package" separator Identifiers newlines
+    ;
+
+directives
+    :   directive newlines
+    |   directives directive
+    ;
+
+directive
+    :   "alias" separator Identifier "=" Identifier
+    |   "enum" separator Identifier enum_definition
+    |   "fn" method_class separator function_defn
+    |   "interface" separator interface_defn
+    |   "proc" method_class separator function_defn
+    |   "switch" separator switchfn_definition
+    ;
+
+enum_definition
+    :   "{" newlines enum_labels "}"
+    ;
+
+enum_labels
+    :   enum_label newlines
+    |   enum_labels enum_label
+    ;
+
+enum_label
+    :   Identifier "=" string_literal
+    |   Identifier
+    ;
+
+method_class
+    :   "of" Identifier
+    |   /* empty */
+    ;
+
+function_defn
+    :   Identifier fn_paramlist (separator fn_returntype)? fn_body
+    ;
+
+fn_paramlist
+    :   '(' fm_params ')'
+    ;
+
+fn_params
+    :   fn_param_group
+    |   fn_params separator fn_param_group
+    |   /* empty */
+    ;
+
+fn_param_group
+    :   fn_param_names reftype var_type
+    ;
+
+fn_param_names
+    :   Identifier
+    |   fn_param_names "," Identifier
+    ;
+
+reftype
+    :   "cref"  // const reference
+    |   "mref"  // mutable reference
+    ;
+
+var_type
+    :   array_dims Identifier
+    |   Identifier
+    ;
+
+array_dims
+    :   array_dim*
+    ;
+
+
+*/
