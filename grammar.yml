@@ -1,0 +1,100 @@
+# Right now I'm using "rply" to build a parser generator so I can work out of
+# python for the initial exploration, but to keep it vaguely like a real
+# ebnf definition, I'm using a yaml description.
+
+tokens:
+  # Literals will be declared as name.upper(), e.g. "print" -> PRINT
+  definitions:
+    FN: "fn"
+    PACKAGE: "package"
+    PRINT: "print"
+    OPEN_BRACE: "{"
+    CLOSE_BRACE: "}"
+    OPEN_PAREN: '\('
+    CLOSE_PAREN: '\)'
+    COMMA: ","
+    SEMICOLON: ";"
+    # Newline also swallows multi-line comments.
+    NEWLINE: '([\r\n]|/\*(((?!\*/|\n).)*\n)+((?!\*/).)*\*/)+'
+    EQUALS: "="
+
+    IDENTIFIER: '\b[A-Za-z_][A-Za-z0-9_]*\b'
+    FLOAT_LITERAL: '\b\d+\.\d*|\.\d+\b'
+    INTEGER_LITERAL: '\b\d+\b'
+    STRING_LITERAL: '"(\\"|\\.|.)*"|''(\\''|\\.|.)*'''
+
+    # Built-in types
+    INT: int
+    FLOAT: float
+    STRING: string
+
+  # Regexes to ignore
+  ignores:
+    - '[\r\t ]+'
+    - '//[^\n]*'
+    - '/\*[^\n]*?\*/'
+
+start:
+  "document"
+
+continuation:
+  SEMICOLON newlines-allowed
+
+productions:
+  document:
+    - package-decl package-body
+    - package-decl
+
+  newlines-allowed:
+    - NEWLINE
+    - /*EMPTY*/
+
+  package-decl:
+    - package-specifier IDENTIFIER
+
+  package-specifier:
+    - PACKAGE continuation
+
+  package-body:
+    - top-level-stmt
+    - package-body NEWLINE top-level-stmt
+
+  function_decl:
+    - simple-fn-decl
+
+  simple-fn-decl:
+    - simple-fn-specifier continuation fn-fingerprint fn-body
+
+  simple-fn-specifier:
+    - FN
+
+  fn-fingerprint:
+    # fn; <name> ( <arglist> ) [; <return types>]
+    - IDENTIFIER fn-argpattern fn-returntype
+  
+  fn-argpattern:
+    - OPEN_PAREN CLOSE_PAREN
+
+  fn-returntype:
+    - /*EMPTY*/
+
+  fn-body:
+    # allow trivial function definitions: fn; square(n int) = n * n
+    - EQUALS statement
+    - compound-statement
+
+  compound-statement:
+    - OPEN_BRACE newlines-allowed CLOSE_BRACE
+    - OPEN_BRACE newline statements CLOSE_BRACE newline
+
+  statements:
+    - statement newline
+    - statements statement
+
+  statement:
+    - print-statement
+
+  print-statement:
+    - PRINT continuation STRING_LITERAL
+    - PRINT
+

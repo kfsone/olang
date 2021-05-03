@@ -1,0 +1,10 @@
+# ide stuff
+.vs
+.vscode
+.idea
+
+# vim backups
+*~
+
+# cached python
+*.pyc
