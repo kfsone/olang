@@ -1,56 +1,48 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Union
 
-@dataclass
+class Document:
+    package: 'Package'
+    declarations: Union[List['Declaration'], None]
+
+    def __init__(self, package, declarations=None):
+        self.package = package
+        self.declarations = declarations or None
+
+    def __repr__(self):
+        if self.declarations:
+            return f"Document<{self.package}, {self.declarations}>"
+        else:
+            return f"Document<{self.package}>"
+
 class Package:
     """Package name of current CU"""
-    value: str
+    name: str
 
-    def eval(self) -> str:
-        return self.value
+    def __init__(self, name_token):
+        self.name = name_token.value
+
+    def __repr__(self):
+        return f"Package<{self.name}>"
+
+class Declaration:
+    """A top-level declaration"""
+    pass
+
+@dataclass
+class FunctionDefn:
+    name: str
+    args: List
+    returns: List
+
+@dataclass
+class Function(Declaration):
+    """A function declaration"""
+    defn: FunctionDefn
+    body: Union['Expression', 'Statement']
+
+class Expression:
+    pass
 
 class Statement:
     pass
-
-class Expression:
-    expression: str
-
-    def eval(self):
-        print("expr: " + self.expression)
-
-class AtomicStatement(Statement):
-    expression: Expression
-    def eval(self):
-        return self.expression.eval()
-
-class CompoundStatement(Statement):
-    expressions: List[Expression]
-    def eval(self):
-        for expression in self.expressions:
-            expression.eval()
-
-@dataclass
-class Fn:
-    name: str
-    arglist: List[str]
-    return_type: str
-    statement: Statement
-
-    def eval(self):
-        print(f"declaring {self.name}({self.arglist}) -> {self.return_type}" )
-
-
-@dataclass
-class String:
-    value: str
-
-    def eval(self) -> str:
-        return self.value
-
-
-@dataclass
-class Print:
-    fmt: str
-    args: List
-
-

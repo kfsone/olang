@@ -1,32 +1,21 @@
-# Right now I'm using "rply" to build a parser generator so I can work out of
-# python for the initial exploration, but to keep it vaguely like a real
-# ebnf definition, I'm using a yaml description.
-
 tokens:
   # Literals will be declared as name.upper(), e.g. "print" -> PRINT
   definitions:
-    FN: "fn"
-    PACKAGE: "package"
-    PRINT: "print"
-    OPEN_BRACE: "{"
-    CLOSE_BRACE: "}"
+    SEMICOLON: ";"
     OPEN_PAREN: '\('
     CLOSE_PAREN: '\)'
-    COMMA: ","
-    SEMICOLON: ";"
-    # Newline also swallows multi-line comments.
-    NEWLINE: '([\r\n]|/\*(((?!\*/|\n).)*\n)+((?!\*/).)*\*/)+'
+    OPEN_BRACE: "{"
+    CLOSE_BRACE: "}"
     EQUALS: "="
 
-    IDENTIFIER: '\b[A-Za-z_][A-Za-z0-9_]*\b'
-    FLOAT_LITERAL: '\b\d+\.\d*|\.\d+\b'
-    INTEGER_LITERAL: '\b\d+\b'
-    STRING_LITERAL: '"(\\"|\\.|.)*"|''(\\''|\\.|.)*'''
+    PACKAGE: "package"
+    PRINT: "print"
+    FN: "fn"
 
-    # Built-in types
-    INT: int
-    FLOAT: float
-    STRING: string
+    # Newline also swallows multi-line comments.
+    NEWLINE: '([\r\n]|/\*(((?!\*/|\n).)*\n)+((?!\*/).)*\*/)+'
+
+    IDENTIFIER: '\b[A-Za-z_][A-Za-z0-9_]*\b'
 
   # Regexes to ignore
   ignores:
@@ -34,67 +23,64 @@ tokens:
     - '//[^\n]*'
     - '/\*[^\n]*?\*/'
 
-start:
-  "document"
-
-continuation:
-  SEMICOLON newlines-allowed
-
+# production names must have an equivalent function tagged in grammar.py
 productions:
   document:
-    - package-decl package-body
-    - package-decl
+      - newlines-allowed package-decl NEWLINE declarations newlines-allowed
+      #- newlines-allowed package-decl newlines-allowed
+
+  # semicolon indicates "more to come" and swallows newlines
+  continuation:
+    - SEMICOLON NEWLINE
+    - SEMICOLON
+
+  package-decl:
+    - package-specifier package-name-decl
+
+  package-specifier:
+    - PACKAGE continuation
+
+  package-name-decl:
+    - IDENTIFIER
 
   newlines-allowed:
     - NEWLINE
     - /*EMPTY*/
 
-  package-decl:
-    - package-specifier IDENTIFIER
+  declarations:
+    - declaration
+    - declarations declaration
 
-  package-specifier:
-    - PACKAGE continuation
+  declaration:
+    - fn-decl
 
-  package-body:
-    - top-level-stmt
-    - package-body NEWLINE top-level-stmt
+  fn-decl:
+    - FN continuation fn-defn fn-body
 
-  function_decl:
-    - simple-fn-decl
+  open-block:
+    - continuation OPEN_BRACE
+    - OPEN_BRACE
 
-  simple-fn-decl:
-    - simple-fn-specifier continuation fn-fingerprint fn-body
-
-  simple-fn-specifier:
-    - FN
-
-  fn-fingerprint:
-    # fn; <name> ( <arglist> ) [; <return types>]
-    - IDENTIFIER fn-argpattern fn-returntype
-  
-  fn-argpattern:
-    - OPEN_PAREN CLOSE_PAREN
+  fn-defn:
+    - IDENTIFIER fn-args fn-returntype
 
   fn-returntype:
+    - continuation IDENTIFIER
     - /*EMPTY*/
 
+  fn-args:
+    - OPEN_PAREN CLOSE_PAREN
+
   fn-body:
-    # allow trivial function definitions: fn; square(n int) = n * n
-    - EQUALS statement
-    - compound-statement
+    - EQUALS expression
+  #   - OPEN_BRACE newlines-allowed CLOSE_BRACE
+  #   - OPEN_BRACE NEWLINE statement CLOSE_BRACE
 
-  compound-statement:
-    - OPEN_BRACE newlines-allowed CLOSE_BRACE
-    - OPEN_BRACE newline statements CLOSE_BRACE newline
+  expression:
+    - PACKAGE
 
-  statements:
-    - statement newline
-    - statements statement
+  # statement:
+  #   - single-stmt
 
-  statement:
-    - print-statement
-
-  print-statement:
-    - PRINT continuation STRING_LITERAL
-    - PRINT
-
+  # single-stmt:
+  #   - expression
